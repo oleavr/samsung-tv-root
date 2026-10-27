@@ -295,6 +295,9 @@ class SdbClient:
             worker.start()
             try:
                 connection, _ = listener.accept()
+                connection.setsockopt(
+                    socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
+                )
             except TimeoutError as error:
                 worker.join(timeout=0.25)
                 failure = state.get("error")
