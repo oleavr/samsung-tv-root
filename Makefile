@@ -5,16 +5,17 @@ LLD ?= $(firstword $(wildcard /usr/lib/llvm*/bin/ld.lld))
 
 QN90B_OUT := payloads/qn90b/out
 QN90F_OUT := payloads/qn90f/out
+S95D_OUT := payloads/s95d/out
 COMMON_OUT := payloads/common/out
 COMMON31_OUT := payloads/common31/out
 SWU_OUT := swu/out
 
-.PHONY: all payloads common-payload common31-payload qn90b-payload qn90f-payload swu-preloads lint test \
-	audit release clean
+.PHONY: all payloads common-payload common31-payload qn90b-payload qn90f-payload s95d-payload \
+	swu-preloads lint test audit release clean
 
 all: payloads swu-preloads
 
-payloads: common-payload common31-payload qn90b-payload qn90f-payload
+payloads: common-payload common31-payload qn90b-payload qn90f-payload s95d-payload
 
 common-payload:
 	rm -rf "$(COMMON_OUT)"
@@ -106,6 +107,13 @@ qn90f-payload: common-payload
 	cp "$(COMMON_OUT)/SamsungTvEventAgent.runtimeconfig.json" \
 		"$(QN90F_OUT)/SamsungTvEventAgent.runtimeconfig.json"
 
+s95d-payload:
+	rm -rf "$(S95D_OUT)"
+	$(DOTNET) build payloads/s95d/UepPatch.csproj \
+		--configuration Release --output "$(S95D_OUT)"
+	cp payloads/s95d/UepPatch.runtimeconfig.json \
+		"$(S95D_OUT)/UepPatch.runtimeconfig.json"
+
 swu-preloads:
 	rm -rf "$(SWU_OUT)"
 	mkdir -p "$(SWU_OUT)"
@@ -144,4 +152,5 @@ release: all lint test audit
 	uv run python tools/build_release.py
 
 clean:
-	rm -rf "$(COMMON_OUT)" "$(COMMON31_OUT)" "$(QN90B_OUT)" "$(QN90F_OUT)" "$(SWU_OUT)" dist
+	rm -rf "$(COMMON_OUT)" "$(COMMON31_OUT)" "$(QN90B_OUT)" "$(QN90F_OUT)" "$(S95D_OUT)" \
+		"$(SWU_OUT)" dist

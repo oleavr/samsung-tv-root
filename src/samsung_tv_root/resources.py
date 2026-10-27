@@ -48,6 +48,10 @@ PAYLOAD_FILES = {
         "Qn90fEflTextOverlayProbe.dll",
         "Qn90fEflTextOverlayProbe.runtimeconfig.json",
     ),
+    "s95d": (
+        "UepPatch.dll",
+        "UepPatch.runtimeconfig.json",
+    ),
 }
 
 
