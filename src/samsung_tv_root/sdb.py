@@ -139,10 +139,12 @@ class SdbClient:
         tv_host: str,
         *,
         timeout: float = DEFAULT_TIMEOUT,
+        callback_port: int = 0,
     ) -> None:
         self.executable = executable
         self.tv_host = tv_host
         self.timeout = timeout
+        self.callback_port = callback_port
 
     @property
     def serial(self) -> str:
@@ -262,10 +264,11 @@ class SdbClient:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                listener.bind((bind, port))
+                listener.bind((bind, port or self.callback_port))
             except OSError as error:
                 raise SdbError(
-                    f"cannot listen for TV callback on {bind}:{port}: {error}"
+                    f"cannot listen for TV callback on {bind}:"
+                    f"{port or self.callback_port}: {error}"
                 ) from error
             listener.listen(1)
             listener.settimeout(timeout)
