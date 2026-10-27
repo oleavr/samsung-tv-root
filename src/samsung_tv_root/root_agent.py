@@ -491,6 +491,8 @@ class RootAgentServer:
         writer: asyncio.StreamWriter,
     ) -> None:
         accepted = self._accepted
+        tcp = writer.get_extra_info("socket")
+        tcp.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         peer = writer.get_extra_info("peername")
         peer_host = str(peer[0]) if peer else ""
         if peer_host != self.expected_peer or accepted is None or accepted.done():
