@@ -46,6 +46,11 @@ from .qn90f import (
 )
 from .qn90f_shell import DEFAULT_CONNECT_TIMEOUT as DEFAULT_SHELL_CONNECT_TIMEOUT
 from .qn90f_shell import DEFAULT_ROOT_SHELL_PORT
+from .s95d import (
+    DEFAULT_AGENT_PORT,
+    run_s95d_root_session,
+    run_s95d_uep_control,
+)
 from .sdb import SdbClient, SdbError, find_sdb
 from .resources import payload_directory
 from .service import (
@@ -697,6 +702,51 @@ def command_qn90f_serve(arguments: argparse.Namespace) -> int:
     return asyncio.run(serve(arguments))
 
 
+def command_s95d_root(arguments: argparse.Namespace) -> int:
+    evidence = run_s95d_root_session(
+        arguments.host,
+        tuple(arguments.command or ()),
+        callback_host=arguments.callback_host,
+        bind_host=arguments.bind_host,
+        sdb_timeout=arguments.sdb_timeout,
+        accept_timeout=arguments.accept_timeout,
+        command_timeout=arguments.command_timeout,
+        agent_port=arguments.port,
+    )
+    emit(evidence, arguments.output)
+    return next(
+        (
+            command["exit_code"] or 1
+            for command in evidence.get("commands", ())
+            if command["timed_out"] or command["exit_code"] != 0
+        ),
+        0,
+    )
+
+
+def command_s95d_uep(arguments: argparse.Namespace) -> int:
+    evidence = run_s95d_uep_control(
+        arguments.host,
+        arguments.action,
+        callback_host=arguments.callback_host,
+        bind_host=arguments.bind_host,
+        sdb_timeout=arguments.sdb_timeout,
+        accept_timeout=arguments.accept_timeout,
+        command_timeout=arguments.command_timeout,
+        agent_port=arguments.port,
+        payload_directory=arguments.payload_directory,
+    )
+    emit(evidence, arguments.output)
+    return next(
+        (
+            command["exit_code"] or 1
+            for command in evidence.get("commands", ())
+            if command["timed_out"] or command["exit_code"] != 0
+        ),
+        0,
+    )
+
+
 def add_transport_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("host", nargs="?")
     parser.add_argument(
@@ -1087,6 +1137,30 @@ def build_parser() -> argparse.ArgumentParser:
     archive_run.add_argument("--command", action="append", required=True)
     archive_run.add_argument("--command-timeout", type=float, default=45.0)
     archive_run.set_defaults(handler=command_archive_root_root)
+
+    s95d = commands.add_parser("s95d")
+    s95d_commands = s95d.add_subparsers(dest="s95d_command", required=True)
+    s95d_root = s95d_commands.add_parser("root")
+    s95d_root.add_argument("host", help="TV IPv4 address")
+    s95d_root.add_argument("--command", action="append")
+    s95d_root.add_argument("--callback-host")
+    s95d_root.add_argument("--bind-host")
+    s95d_root.add_argument("--port", type=int, default=DEFAULT_AGENT_PORT)
+    s95d_root.add_argument("--sdb-timeout", type=float, default=15.0)
+    s95d_root.add_argument("--accept-timeout", type=float, default=30.0)
+    s95d_root.add_argument("--command-timeout", type=float, default=45.0)
+    s95d_root.set_defaults(handler=command_s95d_root)
+    s95d_uep = s95d_commands.add_parser("uep")
+    s95d_uep.add_argument("host", help="TV IPv4 address")
+    s95d_uep.add_argument("action", choices=("status", "on", "off"))
+    s95d_uep.add_argument("--payload-directory", type=Path)
+    s95d_uep.add_argument("--callback-host")
+    s95d_uep.add_argument("--bind-host")
+    s95d_uep.add_argument("--port", type=int, default=DEFAULT_AGENT_PORT)
+    s95d_uep.add_argument("--sdb-timeout", type=float, default=15.0)
+    s95d_uep.add_argument("--accept-timeout", type=float, default=30.0)
+    s95d_uep.add_argument("--command-timeout", type=float, default=45.0)
+    s95d_uep.set_defaults(handler=command_s95d_uep)
 
     return parser
 
