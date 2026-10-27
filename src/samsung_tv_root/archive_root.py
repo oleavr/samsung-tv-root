@@ -401,7 +401,9 @@ async def probe(
             finally:
                 await connection.shutdown()
             if launch_task is not None:
-                launch_result = await asyncio.wait_for(launch_task, timeout=15)
+                launch_result = await asyncio.wait_for(
+                    launch_task, timeout=accept_timeout + 20
+                )
                 if "[exit:0]" not in launch_result.output:
                     raise ArchiveRootError(
                         "launcher exited unsuccessfully: "
