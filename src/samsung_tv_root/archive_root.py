@@ -23,6 +23,8 @@ from .sdb import CaptureResult, SdbClient, SdbError, find_sdb, route_callback_ho
 
 STAGING_ROOT = PurePosixPath("/home/owner/share/tmp/sdk_tools")
 ON_DEMAND = STAGING_ROOT / "on-demand"
+CAPTURE_PORT = 24002
+LAUNCH_CAPTURE_PORT = 24003
 PAYLOAD_FILES = (
     "SamsungTvArchiveRoot.dll",
     "SamsungTvRootAgent.dll",
@@ -284,13 +286,19 @@ async def probe(
     command_timeout: float = 45.0,
     commands: tuple[str, ...] = (),
     payloads: Path | None = None,
+    agent_port: int = 24001,
 ) -> dict[str, object]:
     ipaddress.IPv4Address(tv_host)
     callback = callback_host or route_callback_host(tv_host)
     ipaddress.IPv4Address(callback)
     bind = bind_host or callback
     ipaddress.IPv4Address(bind)
-    client = SdbClient(find_sdb(), tv_host, timeout=sdb_timeout)
+    client = SdbClient(
+        find_sdb(),
+        tv_host,
+        timeout=sdb_timeout,
+        callback_port=CAPTURE_PORT,
+    )
     assessment = await asyncio.to_thread(_check_target, client, runtime)
     payloads = payloads or payload_directory(
         "common31" if assessment.runtime == "3.1" else "common"
@@ -307,7 +315,13 @@ async def probe(
     package = "archive-root-" + secrets.token_hex(8)
     staging_started = False
     launch_task: asyncio.Task[CaptureResult] | None = None
-    server = RootAgentServer(bind, 0, tv_host, generate_secret(), require_root=True)
+    server = RootAgentServer(
+        bind,
+        agent_port,
+        tv_host,
+        generate_secret(),
+        require_root=True,
+    )
     await server.start()
     try:
         with tempfile.TemporaryDirectory(prefix="samsung-tv-archive-root-") as temp:
@@ -333,6 +347,7 @@ async def probe(
                     callback_host=callback,
                     bind_host=bind,
                     timeout=accept_timeout + 20,
+                    port=LAUNCH_CAPTURE_PORT,
                 )
             )
             try:

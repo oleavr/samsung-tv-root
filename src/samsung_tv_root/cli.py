@@ -508,6 +508,7 @@ def command_archive_root_probe(arguments: argparse.Namespace) -> int:
             sdb_timeout=arguments.sdb_timeout,
             accept_timeout=arguments.accept_timeout,
             payloads=arguments.payload_directory,
+            agent_port=arguments.agent_port,
         )
     )
     emit(evidence, arguments.output)
@@ -528,6 +529,7 @@ def command_archive_root_root(arguments: argparse.Namespace) -> int:
             command_timeout=arguments.command_timeout,
             commands=tuple(arguments.command),
             payloads=arguments.payload_directory,
+            agent_port=arguments.agent_port,
         )
     )
     emit(evidence, arguments.output)
@@ -1070,6 +1072,12 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--sdb-timeout", type=float, default=15.0)
         command.add_argument("--accept-timeout", type=float, default=30.0)
         command.add_argument("--payload-directory", type=Path)
+        command.add_argument(
+            "--agent-port",
+            type=int,
+            default=24001,
+            help="fixed TCP port for the root agent callback (0 = ephemeral)",
+        )
 
     archive_probe = archive_commands.add_parser("probe")
     add_archive_options(archive_probe)
